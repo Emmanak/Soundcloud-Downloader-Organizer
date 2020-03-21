@@ -1,19 +1,10 @@
 import itertools
 import os
 import time
-#from idlelib.multicall import r
-
 import eyed3
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from importlib import reload
 import sys
-# sys.setdefaultencoding() does not exist, here!
-#reload(sys)  # Reload does the trick!
-#sys.setdefaultencoding('UTF8')
-
-#with open('G:\\Downloads\\scDownloaderOutput.txt', 'w', encoding='utf-8') as f:
-    #print(r['body'], file=f)
 
 sys.stdout = open('G:\\Downloads\\scDownloaderOutput.txt', 'w', encoding='utf-8')
 
@@ -23,7 +14,7 @@ filepath = 'G:\\Downloads'
 filepath2 = 'G:\\Google Drive\\Hymns'
 options = Options()
 options.add_argument("user-data-dir=C:\\Selenium\\BrowserProfile")
-driver = webdriver.Chrome(options=options,executable_path="G:/Downloads/chromedriver_win32/chromedriver.exe")
+driver = webdriver.Chrome(options=options,executable_path="G:/My Tools/chromedriver_win32/chromedriver.exe") #G:/My Tools/chromedriver_win32/chromedriver.exe
 driver.nameIndex = 0
 driver.downloaded = 0
 driver.totalSongs = 0
@@ -35,10 +26,6 @@ driver.totalSongs = 0
 def startScript():
     driver.implicitly_wait(1)
     driver.maximize_window()
-    #driver.get('chrome://extensions/')
-    #for i in range(5):
-        #print(i)
-        #time.sleep(1)
 
 
 #Ending Sequence
@@ -46,23 +33,26 @@ def exitScript():
     time.sleep(1)  # Wait to view page
     driver.close()
     driver.quit()
-    print("Test completed")
+    print("All downloads completed")
 
+#Retrieves User Tracks Webpage
 def loadTracks(username):
     driver.get('https://soundcloud.com'+username+'/tracks')
 
+#retrieves User's following webpage
 def loadFollowing(username):
     driver.get('https://soundcloud.com'+username+'/following')
 
+#Find single element via xpath
 def loadXpath(textString):
     driver.find_element_by_xpath(textString)
-
+#Fine multiple elements via xpath
 def loadXpaths(textString):
     driver.find_elements_by_xpath(textString)
 
+#Modify MP3 Tags for Artist, and Album
 def mp3Tagger(filepath, name):
  mp3 = eyed3.load(filepath)
- #newName = 'u"{}"'.format(name)
  mp3.tag.artist = name
  mp3.tag.album = name
  mp3.tag.save()
@@ -83,13 +73,9 @@ def charReplace(filename):
     return filename
 
 
-
-startScript()
-
-
 #loop through all tracks
 def downloadUsers(driver):
-    loadTracks('/emmanuel-augustine-3')  # username can be chanegd to a variable
+    loadTracks('/emmanuel-augustine-3')  # username can be changed to a variable (For Future)
     following = driver.find_element_by_xpath('//td[contains(@class, "infoStats__stat")]/a[contains(@href, "following")]/div').get_attribute("innerText")
     driver.find_element_by_xpath('//td[contains(@class, "infoStats__stat")]/a[contains(@href, "following")]/div').click()
     print("Following: " + str(following))
@@ -107,7 +93,6 @@ def downloadUsers(driver):
     print(str(len(followingNum))+" users found")
     for name in followingNum:
         usernames[i] = name.get_attribute("pathname")
-        #downloadTracks(driver)
         i = i+1
     i = 0
     for name in usernames:
@@ -115,8 +100,6 @@ def downloadUsers(driver):
         i = i + 1
         print("Fetching user " + str(i) + " of " + str(len(usernames)) + ": " + str(driver.username))
         downloadTracks(driver)
-
-
 
 
 def downloadTracks(driver):
@@ -128,7 +111,6 @@ def downloadTracks(driver):
 
 
 
-    #print("Following: "+str(following))
 
     while len(links) < int(tracks): #Loading all tracks on screen links usually has more tracks than the user actual tracks so the difference needs to be calculated
         links = driver.find_elements_by_xpath('//a[contains(@class, "soundTitle__title")]/span')
@@ -156,21 +138,8 @@ def downloadTracks(driver):
         driver.execute_script("window.scrollTo(0," + str(scroll) + " )")
         newName[nameIndex] = filename + ' by ' + name
         artistName[nameIndex] = name
-        #print('downloading:...' + newName[nameIndex])
         nameIndex = nameIndex + 1
         scroll = scroll + 200
-
-        #if nameIndex < 40: #####################################################skip ahead
-           # break
-
-
-
-        #if (nameIndex > 1) and (nameIndex < len(names) + 1) and (artistName[nameIndex - 1] != previousName):
-            # print(artistName[nameIndex - 2])
-            # print(previousName)
-            #print('************************* DOWNLOAD FAILED ****************************')
-            #continue
-
 
         #A filename cannot contain any of the following characters: \ / : * ? " < > | or in this case ~ as well
         filename = charReplace(filename)
@@ -215,39 +184,15 @@ def downloadTracks(driver):
             except FileExistsError:
                 print("You already have "+filename)
 
-        #time.sleep(5)
-        #if os.path.exists(filepath+"\\"+filename) and os.path.exists(filepath + "\\" + name):
-            #try:
-               # print("Moving song to " + filepath + "\\" + name)
-               # os.rename(filepath + "\\" + filename, filepath + "\\" + name + "\\" + filename)
-            #except FileExistsError:
-                #print("ERROR: File already exists. Move cancelled")
-                #break
+
         downloaded = downloaded + 1
         print(str(downloaded) + ' out of ' + str(tracks) + ' downloaded in '+ str(waitTimer) + ' sec')
 
-        # newfilename = link.get_attribute('innerText') + 'by Emmanuel Augustine' + '.mp3'
-        # filename = max([filepath + "\\" + f for f in os.listdir(filepath)], key=os.path.getctime)
-        # shutil.move(os.path.join(filepath, ), newfilename)
 
 
 
-
-
+#### SCRIPT FUNCTION CALLS ####
 startScript()
 downloadUsers(driver)
-#driver.username = '/notesofgladness'
-#downloadTracks(driver)
-
-#links = driver.find_elements_by_xpath('//a[contains(@class, "soundTitle__title")]/span')
-#while driver.nameIndex < len(links):
- #   print(links[driver.nameIndex].get_attribute('innerText')+'mp3')
-  #  driver.nameIndex = driver.nameIndex + 1
-
-
-#print(str(driver.downloaded)+' out of '+str(driver.totalSongs)+' downloaded')
-#print(driver.nameIndex)
-
-
 exitScript()
 
