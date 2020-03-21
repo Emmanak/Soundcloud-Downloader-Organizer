@@ -1,13 +1,26 @@
 import itertools
 import os
 import time
+#from idlelib.multicall import r
+
 import eyed3
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from importlib import reload
+import sys
+# sys.setdefaultencoding() does not exist, here!
+#reload(sys)  # Reload does the trick!
+#sys.setdefaultencoding('UTF8')
+
+#with open('G:\\Downloads\\scDownloaderOutput.txt', 'w', encoding='utf-8') as f:
+    #print(r['body'], file=f)
+
+sys.stdout = open('G:\\Downloads\\scDownloaderOutput.txt', 'w', encoding='utf-8')
 
 
 #Script Init
 filepath = 'G:\\Downloads'
+filepath2 = 'G:\\Google Drive\\Hymns'
 options = Options()
 options.add_argument("user-data-dir=C:\\Selenium\\BrowserProfile")
 driver = webdriver.Chrome(options=options,executable_path="G:/Downloads/chromedriver_win32/chromedriver.exe")
@@ -54,6 +67,22 @@ def mp3Tagger(filepath, name):
  mp3.tag.album = name
  mp3.tag.save()
  return
+
+def charReplace(filename):
+    filename = filename.replace(":", "_")
+    filename = filename.replace("~", "_")
+    filename = filename.replace("|", "_")
+    filename = filename.replace("/", "_")
+    filename = filename.replace("\\", "_")
+    filename = filename.replace("?", "_")
+    filename = filename.replace("/", "_")
+    filename = filename.replace("<", "_")
+    filename = filename.replace(">", "_")
+    filename = filename.replace('"', "_")
+    filename = filename.replace('*', "_")
+    return filename
+
+
 
 startScript()
 
@@ -121,6 +150,7 @@ def downloadTracks(driver):
     for link, download in itertools.zip_longest(links, downloads):
         if nameIndex+1 > int(tracks):
             return
+
         filename = link.get_attribute('innerText') + '.mp3'
         name = names[nameIndex].get_attribute('innerText')
         driver.execute_script("window.scrollTo(0," + str(scroll) + " )")
@@ -130,6 +160,10 @@ def downloadTracks(driver):
         nameIndex = nameIndex + 1
         scroll = scroll + 200
 
+        #if nameIndex < 40: #####################################################skip ahead
+           # break
+
+
 
         #if (nameIndex > 1) and (nameIndex < len(names) + 1) and (artistName[nameIndex - 1] != previousName):
             # print(artistName[nameIndex - 2])
@@ -138,61 +172,49 @@ def downloadTracks(driver):
             #continue
 
 
-        filename = filename.replace(":", "_")
-        filename = filename.replace("~", "_")
-        filename = filename.replace("|", "_")
+        #A filename cannot contain any of the following characters: \ / : * ? " < > | or in this case ~ as well
+        filename = charReplace(filename)
+        name = charReplace(name)
         waitTimer = 0
         clicked = 0
-        while not os.path.exists(filepath+"\\"+filename):
-            print("verifying "+filepath+"\\"+filename)
-            #time.sleep(1)
-            waitTimer = waitTimer + 1
+        skip = 0
+        print("verifying " + filepath + "\\" + filename)
 
+        while not os.path.exists(filepath+"\\"+filename) and not os.path.exists(filepath2 + "\\" + name + "\\" + filename):
 
-            if clicked == 0 and not (os.path.exists(filepath + "\\" + name + "\\" + filename)) and not (os.path.exists(filepath+"\\"+filename)):
-                print('downloading:...' + filename+' by '+name)
-                download.click()
+            if clicked == 0:
                 clicked = 1
-                #time.sleep(4)
-            elif os.path.exists(filepath+"\\"+filename):
-                mp3Tagger(filepath+"\\"+filename, name)
-
-
-
-                if not os.path.exists(filepath+"\\"+name):
-                    try:
-                        print("Making new folder "+filepath+"\\"+name)
-                        os.makedirs(filepath+"\\"+name)
-
-                        #os.rename(filepath + "\\" + filename, filepath + "\\" + name + "\\" + filename)
-                    except FileExistsError:
-                        # directory already exists
-                        break
-                elif os.path.exists(filepath + "\\" + name):
-                    try:
-                        print("Moving song to " + filepath + "\\" + name)
-                        os.rename(filepath + "\\" + filename, filepath + "\\" + name + "\\" + filename)
-                    except FileExistsError:
-                        # directory already exists
-                        break
-
-                try:
-                    print("Moving song to " + filepath + "\\" + name)
-                    os.rename(filepath + "\\" + filename, filepath + "\\" + name + "\\" + filename)
-                except FileExistsError:
-                    # directory already exists
+                if previousName == artistName[nameIndex-1]:
+                    download.click()
+                elif previousName != artistName[nameIndex-1]:
                     break
 
-            elif os.path.exists(filepath+"\\"+filename) and os.path.exists(filepath + "\\" + name):
-                print("Moving song to " + filepath + "\\" + name)
-                os.rename(filepath + "\\" + filename, filepath + "\\" + name + "\\" + filename)
+            elif waitTimer > 10:
+                skip = 1
                 break
-            elif os.path.exists(filepath + "\\" + name + "\\" + filename):
-                print("You already have this song")
-                break
-            #elif waitTimer > 5:
-                #print("Moving to next track")
-                #break
+            time.sleep(1)
+            waitTimer = waitTimer + 1
+
+        print(filepath + "\\" + filename +" downloaded in " + str(waitTimer)+" sec")
+        if clicked == 1 and skip == 0:
+            mp3Tagger(filepath + "\\" + filename, name)
+
+        if not os.path.exists(filepath2 + "\\" + name) and os.path.exists(filepath + "\\" + filename) and skip == 0:
+            try:
+                print("Making new folder " + filepath2 + "\\" + name)
+                os.makedirs(filepath2 + "\\" + name)
+                print("Moving song to " + filepath2 + "\\" + name)
+                os.rename(filepath + "\\" + filename, filepath2 + "\\" + name + "\\" + filename)
+            except FileExistsError:
+                print("The path"+filepath+"\\"+name+" already exists")
+
+        elif os.path.exists(filepath2 + "\\" + name) and os.path.exists(filepath + "\\" + filename) and skip == 0:
+            try:
+                print("Moving song to " + filepath2 + "\\" + name)
+                os.rename(filepath + "\\" + filename, filepath2 + "\\" + name + "\\" + filename)
+            except FileExistsError:
+                print("You already have "+filename)
+
         #time.sleep(5)
         #if os.path.exists(filepath+"\\"+filename) and os.path.exists(filepath + "\\" + name):
             #try:
